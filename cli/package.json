@@ -1,0 +1,21 @@
+{
+  "name": "yacs-installer",
+  "version": "1.0.0",
+  "description": "Interactive CLI installer for YACS skills",
+  "type": "module",
+  "bin": {
+    "yacs": "./install.js"
+  },
+  "scripts": {
+    "start": "node install.js"
+  },
+  "keywords": ["yacs", "skills", "installer", "cli"],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "inquirer": "^13.3.0"
+  }
+}
