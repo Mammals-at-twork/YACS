@@ -1,7 +1,7 @@
-![](https://boletinstatics.blob.core.windows.net/imagenes/yacs_logo.png)
+![YACS](https://boletinstatics.blob.core.windows.net/imagenes/yacs_logo.png)
 # YACS — Yet Another Claude Skills Repo
 
-> Una colección curada de **Skills para Claude Code** que expanden lo que puedes hacer en cada sesión: desde auditorías de seguridad hasta diseño de sistemas, gamificación de procesos o simplemente pensar diferente.
+> Una colección diferente de **Skills para Claude Code** que expanden lo que puedes hacer en cada sesión: desde auditorías de seguridad hasta diseño de sistemas, gamificación de procesos o simplemente pensar diferente.
 
 ---
 
@@ -16,6 +16,34 @@ No son comandos genéricos. Cada skill está diseñado para resolver un tipo de 
 - **Análisis de datos** que explora dos interpretaciones opuestas del mismo número
 - **Diseño de gamificación** específico para contextos corporativos
 - **Exploración de patrones** de diseño aplicados a tu problema concreto
+
+---
+
+## Instalación
+
+### Instalación Rápida
+
+```bash
+cd cli
+npm install
+npm start
+```
+
+Selecciona tu idioma, elige dónde instalar los skills y qué skills quieres. ¡Así de fácil!
+
+### Ejecución de Tests
+
+El CLI incluye un suite de tests completo que valida:
+- Funcionalidad del módulo i18n (7 idiomas, traducciones)
+- Estructura del directorio de skills
+- Validez de archivos de traducción
+
+```bash
+cd cli
+npm test
+```
+
+Resultado esperado: **31 tests pasando** con 100% de éxito.
 
 ---
 

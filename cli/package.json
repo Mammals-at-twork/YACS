@@ -1,21 +1,45 @@
 {
-  "name": "yacs-installer",
-  "version": "1.0.0",
-  "description": "Interactive CLI installer for YACS skills",
+  "name": "@munchkin09/yacs",
+  "version": "0.9.0",
+  "description": "Interactive CLI installer for Y.A.C.S. (Yet Another Claude Skills)",
   "type": "module",
   "bin": {
     "yacs": "./install.js"
   },
-  "scripts": {
-    "start": "node install.js"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/munchkin09/YACS.git",
+    "directory": "cli"
   },
-  "keywords": ["yacs", "skills", "installer", "cli"],
-  "author": "",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "scripts": {
+    "start": "node install.js",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch"
+  },
+  "keywords": [
+    "yacs",
+    "skills",
+    "installer",
+    "cli",
+    "claude",
+    "codex"
+  ],
+  "author": "Carlos L",
   "license": "MIT",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=24.0.0"
   },
   "dependencies": {
     "inquirer": "^13.3.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0"
+  },
+  "overrides": {
+    "glob": "^13.0.6"
   }
 }
