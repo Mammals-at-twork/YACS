@@ -181,7 +181,7 @@ async function getInstallPath() {
   header(t('selectLocation'));
 
   const locChoice = await inquirer.prompt({
-    type: 'list',
+    type: 'rawlist',
     name: 'location',
     message: t('selectLocationMessage'),
     choices: [
@@ -282,15 +282,17 @@ async function main() {
   try {
     // Detect system language or allow user selection
     const detectedLang = detectSystemLanguage();
+    const langChoices = Object.entries(getSupportedLanguages()).map(([code, langData]) => ({
+      name: `${langData.flag}  ${langData.name}`,
+      value: code,
+    }));
+
     const langChoice = await inquirer.prompt({
-      type: 'list',
+      type: 'rawlist',
       name: 'language',
-      message: 'Select language / Selecciona idioma / Aukeratu hizkuntza:',
-      choices: Object.entries(getSupportedLanguages()).map(([code, langData]) => ({
-        name: `${langData.flag} ${langData.name} (${code})`,
-        value: code,
-      })),
-      default: detectedLang,
+      message: '\nSelect language / Selecciona idioma / Aukeratu hizkuntza:',
+      choices: langChoices,
+      default: langChoices.findIndex(c => c.value === detectedLang),
     });
 
     setLanguage(langChoice.language);
