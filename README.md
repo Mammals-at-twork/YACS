@@ -1,27 +1,40 @@
-![YACS](https://boletinstatics.blob.core.windows.net/imagenes/yacs_logo.png)
+![](https://boletinstatics.blob.core.windows.net/imagenes/yacs_logo.png)
 # YACS — Yet Another Claude Skills Repo
 
-> Una colección diferente de **Skills para Claude Code** que expanden lo que puedes hacer en cada sesión: desde auditorías de seguridad hasta diseño de sistemas, gamificación de procesos o simplemente pensar diferente.
+> A different collection of **Skills for Claude Code** that expand what you can do in each session: from security audits to system design, gamification processes or simply thinking differently.
 
 ---
 
-## ¿Qué es esto?
+## What is this?
 
-**YACS** es un repertorio de Skills — herramientas basadas en prompts que Claude Code invoca automáticamente cuando es relevante, o tú invocas manualmente con `/skill-name`.
+**YACS** is a repository of Skills — prompt-based tools that Claude Code invokes automatically when relevant, or you invoke manually with `/skill-name`.
 
-No son comandos genéricos. Cada skill está diseñado para resolver un tipo de problema específico con rigor y profundidad:
+They are not generic commands. Each skill is designed to solve a specific type of problem with rigor and depth:
 
-- **Auditorías de seguridad** que buscan los vectores reales, no solo las obviedades
-- **Reflexiones sobre calidad** que te hacen pensar diferente
-- **Análisis de datos** que explora dos interpretaciones opuestas del mismo número
-- **Diseño de gamificación** específico para contextos corporativos
-- **Exploración de patrones** de diseño aplicados a tu problema concreto
+- **Security audits** that search for real vectors, not just the obvious ones
+- **Quality reflections** that make you think differently
+- **Data analysis** that explores two opposite interpretations of the same number
+- **Gamification design** specific for corporate contexts
+- **Design pattern exploration** applied to your concrete problem
 
 ---
 
-## Instalación
+## Structure
 
-### Instalación Rápida
+```
+skills/
+├── calidad-y-seguridad/          Security audit, analysis and improvement
+├── desarrollo/                    Gamification, technical debt, planning
+├── analisis-diseno-y-arquitectura/ ADRs, architectural sparks, patterns
+├── debate-y-confrontacion-de-ideas/ Red team, brainstorming, idea validation
+└── datos-e-interpretacion/        Data storytelling, data debate, metric traps
+```
+
+---
+
+## Installation
+
+### Quick Install
 
 ```bash
 cd cli
@@ -29,225 +42,142 @@ npm install
 npm start
 ```
 
-Selecciona tu idioma, elige dónde instalar los skills y qué skills quieres. ¡Así de fácil!
+Choose your language and select which skills to install!
 
-### Ejecución de Tests
+---
 
-El CLI incluye un suite de tests completo que valida:
-- Funcionalidad del módulo i18n (7 idiomas, traducciones)
-- Estructura del directorio de skills
-- Validez de archivos de traducción
+## Installer Usage
+
+The installer guides you through:
+
+1. **Language Selection** - Choose your preferred language
+2. **Installation Location** - Install to `~/.claude/skills` or a custom path
+3. **Skill Selection** - Use ↑↓ to navigate, SPACE to select
+4. **Review** - Confirm your selection before installation
+
+**Keyboard Shortcuts:**
+- ↑↓ - Navigate
+- SPACE - Select/Deselect
+- a - Toggle all
+- i - Invert selection
+- Enter - Confirm
+
+### Running Tests
+
+The CLI includes a complete test suite that validates:
+- i18n module functionality (7 languages, translations)
+- Skills directory structure
+- Translation file validity
 
 ```bash
 cd cli
 npm test
 ```
 
-Resultado esperado: **31 tests pasando** con 100% de éxito.
+Expected result: **31 tests passing** with 100% success rate.
 
 ---
 
-## Estructura
+## Skills by Category
 
-```
-skills/
-├── calidad-y-seguridad/          Auditoría, análisis y mejora de seguridad
-├── desarrollo/                    Gamificación, deuda técnica, planificación
-├── analisis-diseno-y-arquitectura/ ADRs, sparks arquitectónicas, patrones
-├── debate-y-confrontacion-de-ideas/ Red team, brainstorming, validación de ideas
-└── datos-e-interpretacion/        Data storytelling, debate de datos, trampas métricas
-```
-
----
-
-## Skills por categoría
-
-### 🔒 Calidad y Seguridad
+### 🔒 Quality and Security
 
 #### `/owasp-guardian`
-Audita código en busca de vulnerabilidades OWASP Top 10. Muestra el fragmento exacto, explica el vector de ataque y proporciona la corrección.
-
-```bash
-/owasp-guardian src/auth/login.ts
-```
+Audits code for OWASP Top 10 vulnerabilities. Shows the exact snippet, explains the attack vector and provides the fix.
 
 #### `/llm-safety-checks`
-Audita código, prompts o flujos de agentes en busca de vulnerabilidades específicas de LLMs: prompt injection indirecta, obfuscación de instrucciones, jailbreak, envenenamiento de RAG.
-
-```bash
-/llm-safety-checks agent.py
-```
+Audits code, prompts or agent flows for LLM-specific vulnerabilities: indirect prompt injection, instruction obfuscation, jailbreak, RAG poisoning.
 
 #### `/task-flow-planner`
-Lee un fichero de tareas (MD o JSON), detecta dependencias y bloqueos, prioriza el trabajo por equipos y genera tabla + diagrama Mermaid para minimizar TTM.
-
-```bash
-/task-flow-planner roadmap.md
-```
+Reads a task file (MD or JSON), detects dependencies and blockers, prioritizes work by teams and generates table + Mermaid diagram.
 
 #### `/quality-spark`
-Genera una semilla de reflexión sobre calidad de software — de la que tirar del hilo. Sin argumentos, cada invocación te da un ángulo distinto para pensar.
-
-```bash
-/quality-spark
-```
+Generates a seed for reflection on software quality — something to pull the thread. No arguments, each invocation gives you a different angle.
 
 ---
 
-### 💻 Desarrollo
+### 💻 Development
 
 #### `/gamify`
-Diseña una estrategia de gamificación para un proceso interno de empresa. Mapea motivaciones, selecciona mecánicas, diseña progresión y evita anti-patrones.
-
-```bash
-/gamify proceso de code review semanal del equipo
-```
+Designs a gamification strategy for an internal company process. Maps motivations, selects mechanics, designs progression and avoids anti-patterns.
 
 #### `/tech-debt-hunter`
-Identifica y prioriza la deuda técnica. Clasifica por impacto real, estima coste de no actuar, propone acciones mínimas de resolución.
-
-```bash
-/tech-debt-hunter src/core/auth/
-```
+Identifies and prioritizes technical debt. Classifies by real impact, estimates cost of inaction, proposes minimal resolution actions.
 
 ---
 
-### 🏗️ Análisis, Diseño y Arquitectura
+### 🏗️ Analysis, Design and Architecture
 
 #### `/adr-writer`
-Genera un Architecture Decision Record (ADR) completo y listo para commitear. A partir de una decisión técnica, produce contexto, decisión, alternativas y consecuencias.
-
-```bash
-/adr-writer migrar del monolito a microservicios usando event sourcing
-```
+Generates a complete Architecture Decision Record (ADR) ready to commit. From a technical decision, produces context, decision, alternatives and consequences.
 
 #### `/pattern-finder`
-Explora patrones de diseño aplicables a un problema concreto. Descompone las fuerzas en juego, identifica candidatos, compara trade-offs y recomienda la mejor solución.
-
-```bash
-/pattern-finder tengo un sistema de notificaciones que crece a múltiples canales (email, SMS, push)
-```
+Explores applicable design patterns for a concrete problem. Breaks down the forces at play, identifies candidates, compares trade-offs and recommends the best solution.
 
 #### `/architecture-spark`
-Genera una reflexión sobre arquitectura que te hace pensar diferente. Cubre diseño emergente vs. planificado, acoplamiento, evolución de sistemas, límites y fronteras.
-
-```bash
-/architecture-spark
-```
+Quick architectural analysis and design thinking. Identifies key decisions, proposes solutions, highlights risks.
 
 ---
 
-### 💡 Debate y Confrontación de Ideas
+### 🧠 Debate and Idea Confrontation
 
 #### `/red-team`
-Actúa como oponente intelectual riguroso. Cuestiona supuestos, genera argumentos contundentes en contra y describe el escenario más probable de fracaso.
-
-```bash
-/red-team la idea de cambiar todo a serverless
-```
+Challenges an idea from an adversarial perspective. Identifies weaknesses, points out blind spots, tests assumptions.
 
 #### `/brainstorm`
-Explora el espacio de soluciones desde ángulos radicalmente distintos: inversión del problema, extremos de recursos, cambio de protagonista, anti-soluciones, combinaciones inesperadas.
-
-```bash
-/brainstorm cómo mejorar el onboarding de nuevos usuarios
-```
+Structured brainstorming with prompts designed to avoid anchoring bias and groupthink. Generates novel ideas by perspective shifting.
 
 ---
 
-### 📊 Datos e Interpretación
+### 📊 Data and Interpretation
 
 #### `/data-storyteller`
-Interpreta datos y extrae la narrativa real detrás de los números. Identifica anomalías, formula hipótesis causales y comunica con claridad.
-
-```bash
-/data-storyteller nuestro NPS subió 12 puntos tras el rediseño
-```
+Turns raw numbers into compelling narratives. Extracts insights, builds coherent stories around data, highlights what matters.
 
 #### `/data-debate`
-Genera dos interpretaciones completamente opuestas, rigurosas y defendibles del mismo conjunto de datos. Fuerza a ver que casi nunca hay una sola lectura honesta.
+Explores two opposite interpretations of the same data. Challenges the default narrative, uncovers hidden perspectives.
 
-```bash
-/data-debate [adjunta tus métricas o análisis]
-```
+#### `/deep-research`
+Thorough exploration of a topic. Identifies gaps, challenges assumptions, proposes frameworks for deeper understanding.
 
 #### `/metric-trap`
-Desmonta un KPI mostrando formas de gaming, incentivos perversos, sesgos de medición y qué deja fuera. Termina con valoración y recomendación accionable.
-
-```bash
-/metric-trap tasa de resolución en primer contacto de soporte
-```
+Identifies metric traps and measurement failures. Explores how metrics can mislead, what they don't measure, alternative indicators.
 
 ---
 
-## Cómo usar
+## Configuration
 
-### 1. **Invocación manual**
-Escribe `/` seguido del nombre del skill:
+The installer automatically detects your system language but allows you to choose from:
 
-```
-/red-team mi idea de arquitectura
-```
-
-Claude recibe el argumento (todo lo que va después del nombre) como `$ARGUMENTS` dentro del skill.
-
-### 2. **Invocación automática**
-Algunos skills se cargan automáticamente cuando es relevante. Por ejemplo, si preguntas sobre deuda técnica, Claude puede invocar `/tech-debt-hunter` sin que lo pidas.
-
-Los skills con `disable-model-invocation: true` solo se invocan manualmente.
-
-### 3. **Mejores prácticas**
-
-- **Da contexto real**: en lugar de "audita este código", pega el código o la ruta del archivo
-- **Sé específico**: los skills funcionan mejor con problemas concretos que con preguntas genéricas
-- **Tira del hilo**: muchos skills terminan con una pregunta o un espacio abierto — úsalo para profundizar
-- **Combina skills**: a menudo un skill te lleva a otro — `/data-storyteller` → `/data-debate` → `/metric-trap`
+- 🇬🇧 English
+- 🇪🇸 Español
+- 🇨🇦 Català
+- 🇪🇺 Euskera
+- 🇬🇦 Galego
+- 🇦🇳 Andaluz
 
 ---
 
-## Estructura de un skill
+## Notes
 
-Cada skill sigue el estándar [Agent Skills](https://agentskills.io) extendido por Claude Code:
-
-```
-skill-name/
-├── SKILL.md              # Frontmatter YAML + instrucciones de Claude
-├── [templates/]          # Opcional: plantillas para completar
-├── [examples/]           # Opcional: ejemplos de salida esperada
-└── [scripts/]            # Opcional: herramientas ejecutables
-```
-
-El archivo `SKILL.md` contiene:
-
-```yaml
----
-name: skill-name
-description: Qué hace el skill y cuándo usarlo
-argument-hint: "[tipo de argumento esperado]"
-disable-model-invocation: true  # Solo invocación manual (opcional)
----
-
-[Instrucciones en markdown que Claude sigue cuando invoca el skill]
-```
+- All skills maintain their original folder structure
+- Skills are ready to use immediately after installation
+- Each skill includes documentation in SKILL.md
+- Custom scripts and tools are included with each skill
 
 ---
 
-## Créditos
+## Contributing
 
-Creado con rigor y cuidado. Cada skill fue pensado para:
-- ✨ Resolver un problema específico, no genérico
-- 🧠 Forzar análisis profundo, no superficial
-- 🎯 Ser accionable, no solo inspiracional
-- 🔄 Complementarse con otros skills, no estar aislado
+To add new skills:
 
-**Diseñado para trabajar en equipos reales, con problemas reales.**
-
----
-
-## Licencia
-
-MIT — úsalo, compartelo, forkéalo, mejoralo.
+1. Create a folder in `skills/<category>/<skill-name>/`
+2. Include a `SKILL.md` file with the skill description
+3. Add any required scripts or tools
+4. The installer will automatically detect it
 
 ---
 
-**YACS** — porque a veces lo que necesitas es un skill que sepa realmente qué hacer.
+## License
+
+MIT
