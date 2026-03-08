@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
+import { t, setLanguage, getSupportedLanguages, detectSystemLanguage } from './i18n.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,8 +96,8 @@ async function selectSkills(skills) {
   const allSkills = [];
   const choices = [];
 
-  header('🎯 SELECCIONA LOS SKILLS A INSTALAR');
-  log(`${colors.dim}Usa ↑↓ para navegar, ESPACIO para seleccionar/deseleccionar${colors.reset}\n`);
+  header(t('selectSkills'));
+  log(`${colors.dim}${t('selectSkillsHint')}${colors.reset}\n`);
 
   let skillIndex = 0;
   for (const [category, skillNames] of Object.entries(skills)) {
@@ -131,7 +132,7 @@ async function selectSkills(skills) {
     const result = await inquirer.prompt({
       type: 'checkbox',
       name: 'skills',
-      message: 'Selecciona los skills a instalar:',
+      message: t('selectSkillsMessage'),
       choices: choices,
       pageSize: 15,
     });
@@ -148,7 +149,7 @@ async function selectSkills(skills) {
     return [];
   } catch (err) {
     if (err.isTtyError || err.message?.includes('force closed')) {
-      log('\n❌ Selección cancelada');
+      log(`\n❌ ${t('installationCancelled')}`);
       process.exit(0);
     }
     throw err;
@@ -177,19 +178,19 @@ function copySkill(skillPath, destPath) {
 
 // Get installation path from user
 async function getInstallPath() {
-  header('📍 SELECCIONA DÓNDE INSTALAR');
+  header(t('selectLocation'));
 
   const locChoice = await inquirer.prompt({
     type: 'list',
     name: 'location',
-    message: 'Dónde deseas instalar los skills:',
+    message: t('selectLocationMessage'),
     choices: [
       {
-        name: 'Home directory (~/.claude/skills)',
+        name: t('homeDirectory'),
         value: 'home',
       },
       {
-        name: 'Proyecto/repositorio (ruta personalizada)',
+        name: t('customRepository'),
         value: 'custom',
       },
     ],
@@ -208,13 +209,13 @@ async function getInstallPath() {
     const pathChoice = await inquirer.prompt({
       type: 'input',
       name: 'customPath',
-      message: 'Ingresa la ruta del proyecto/repositorio:',
+      message: t('enterCustomPath'),
       validate(value) {
         if (!value.trim()) {
-          return 'La ruta no puede estar vacía';
+          return t('pathEmpty');
         }
         if (!fs.existsSync(value)) {
-          return `La ruta no existe: ${value}`;
+          return `${t('pathNotExists')}: ${value}`;
         }
         return true;
       },
@@ -224,15 +225,15 @@ async function getInstallPath() {
     return { path: skillsPath, source: 'custom' };
   }
 
-  throw new Error(`Selección inválida: ${location}`);
+  throw new Error(`${t('invalidSelection')}: ${location}`);
 }
 
 // Review and confirm selection
 async function reviewSelection(selected, installPath) {
-  header('📋 REVISIÓN DE LA INSTALACIÓN');
+  header(t('review'));
 
-  log(`${colors.bright}Destino:${colors.reset} ${installPath}`);
-  log(`${colors.bright}Total de skills a instalar:${colors.reset} ${selected.length}\n`);
+  log(`${colors.bright}${t('destination')}:${colors.reset} ${installPath}`);
+  log(`${colors.bright}${t('totalSkills')}:${colors.reset} ${selected.length}\n`);
 
   // Group by category
   const byCategory = {};
@@ -251,7 +252,7 @@ async function reviewSelection(selected, installPath) {
   const confirmation = await inquirer.prompt({
     type: 'confirm',
     name: 'proceed',
-    message: '¿Proceder con la instalación?',
+    message: t('proceedInstallation'),
     default: true,
   });
 
@@ -260,7 +261,7 @@ async function reviewSelection(selected, installPath) {
 
 // Main installation process
 async function installSkills(selected, installPath) {
-  header('⚙️  INSTALANDO SKILLS');
+  header(t('installing'));
 
   for (const skill of selected) {
     try {
@@ -271,39 +272,49 @@ async function installSkills(selected, installPath) {
     }
   }
 
-  header('✨ ¡INSTALACIÓN COMPLETADA!');
-  log(`Los skills han sido instalados en:`);
+  header(t('completed'));
+  log(`${t('installedAt')}:`);
   log(`  ${colors.bright}${installPath}${colors.reset}\n`);
-
-  info(`Para usar los skills en Claude Code:`);
-  info(`  1. Abre tu proyecto en Claude Code`);
-  info(`  2. Usa "/" + nombre del skill en cualquier conversación`);
-  info(`  3. Los skills estarán disponibles automáticamente\n`);
 }
 
 // Main entry point
 async function main() {
   try {
-    header('🚀 INSTALADOR DE YACS SKILLS');
+    // Detect system language or allow user selection
+    const detectedLang = detectSystemLanguage();
+    const langChoice = await inquirer.prompt({
+      type: 'list',
+      name: 'language',
+      message: 'Select language / Selecciona idioma / Aukeratu hizkuntza:',
+      choices: Object.entries(getSupportedLanguages()).map(([code, langData]) => ({
+        name: `${langData.flag} ${langData.name} (${code})`,
+        value: code,
+      })),
+      default: detectedLang,
+    });
+
+    setLanguage(langChoice.language);
+
+    header(t('title'));
 
     const skills = getSkills();
     const totalSkills = Object.values(skills).reduce((sum, arr) => sum + arr.length, 0);
 
-    log(`${colors.bright}Skills disponibles:${colors.reset} ${totalSkills}`);
-    log(`${colors.bright}Categorías:${colors.reset} ${Object.keys(skills).length}\n`);
+    log(`${colors.bright}${t('availableSkills')}:${colors.reset} ${totalSkills}`);
+    log(`${colors.bright}${t('categories')}:${colors.reset} ${Object.keys(skills).length}\n`);
 
     const installPath = await getInstallPath();
     const selected = await selectSkills(skills);
 
     if (selected.length === 0) {
-      error('No se seleccionó ningún skill');
+      error(t('noSkillsSelected'));
       process.exit(1);
     }
 
     const proceed = await reviewSelection(selected, installPath.path);
 
     if (!proceed) {
-      log('\n❌ Instalación cancelada');
+      log(`\n❌ ${t('installationCancelled')}`);
       process.exit(0);
     }
 
@@ -312,15 +323,15 @@ async function main() {
   } catch (err) {
     // Handle user cancellation gracefully
     if (err.isTtyError || err.message?.includes('force closed') || err.message?.includes('User cancelled')) {
-      log('\n❌ Operación cancelada');
+      log(`\n❌ ${t('operationCancelled')}`);
       process.exit(0);
     }
-    error(`Error: ${err.message}`);
+    error(`${t('error')}: ${err.message}`);
     process.exit(1);
   }
 }
 
 main().catch((err) => {
-  error(`Error fatal: ${err.message}`);
+  error(`${t('error')}: ${err.message}`);
   process.exit(1);
 });
