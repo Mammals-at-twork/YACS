@@ -1,6 +1,6 @@
 {
   "name": "@mammals-at-work/yacs",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "description": "Interactive CLI installer for Y.A.C.S. (Yet Another Claude Skills)",
   "type": "module",
   "bin": {
@@ -14,12 +14,13 @@
   "files": [
     "src/install.js",
     "src/i18n.js",
-    "src/i18n/",
+    "i18n/",
     "skills/"
   ],
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "start": "node src/install.js",
