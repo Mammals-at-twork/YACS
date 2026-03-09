@@ -4,7 +4,7 @@
   "description": "Interactive CLI installer for Y.A.C.S. (Yet Another Claude Skills)",
   "type": "module",
   "bin": {
-    "yacs": "install.js"
+    "yacs": "src/install.js"
   },
   "repository": {
     "type": "git",
@@ -12,9 +12,9 @@
     "directory": "cli"
   },
   "files": [
-    "install.js",
-    "i18n.js",
-    "i18n/",
+    "src/install.js",
+    "src/i18n.js",
+    "src/i18n/",
     "skills/"
   ],
   "publishConfig": {
@@ -22,7 +22,7 @@
     "access": "public"
   },
   "scripts": {
-    "start": "node install.js",
+    "start": "node src/install.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
     "prepublishOnly": "node prepublish.js"
