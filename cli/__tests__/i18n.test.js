@@ -1,4 +1,4 @@
-import { t, setLanguage, getCurrentLanguage, getSupportedLanguages, SUPPORTED_LANGS } from '../i18n.js';
+import { t, setLanguage, getCurrentLanguage, getSupportedLanguages, SUPPORTED_LANGS } from '../src/i18n.js';
 
 describe('i18n Module', () => {
   describe('Supported Languages', () => {
