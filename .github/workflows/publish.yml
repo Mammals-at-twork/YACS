@@ -45,8 +45,6 @@ jobs:
 
       - name: Publish to npm
         run: npm publish
-        env:
-
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -55,11 +53,11 @@ jobs:
           body: |
             # Release ${{ github.ref_name }}
 
-            Published to npm as `@munchkin09/yacs`.
+            Published to npm as `@mammals-at-work/yacs`.
 
-            ## Installation
+            ## Usage
             ```bash
-            npm install @munchkin09/yacs
+            npx @mammals-at-work/yacs
             ```
 
             Or clone the repository and run:
