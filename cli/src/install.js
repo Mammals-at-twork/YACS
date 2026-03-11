@@ -127,19 +127,15 @@ function getSkillDescription(skillPath) {
 }
 
 function getAgentDescription(agentPath) {
-  const readmePath = path.join(agentPath, 'README.md');
-  if (fs.existsSync(readmePath)) {
-    const content = fs.readFileSync(readmePath, 'utf-8');
-    const lines = content.split('\n');
-    // Get first paragraph after title
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].startsWith('# ')) {
-        for (let j = i + 1; j < lines.length; j++) {
-          const line = lines[j].trim();
-          if (line && !line.startsWith('#')) {
-            return line.substring(0, 60);
-          }
-        }
+  const agentMdPath = path.join(agentPath, 'agent.md');
+  if (fs.existsSync(agentMdPath)) {
+    const content = fs.readFileSync(agentMdPath, 'utf-8');
+    // Extract description from YAML frontmatter
+    const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    if (fmMatch) {
+      const descMatch = fmMatch[1].match(/^description:\s*(.+)$/m);
+      if (descMatch) {
+        return descMatch[1].trim().substring(0, 60);
       }
     }
   }
