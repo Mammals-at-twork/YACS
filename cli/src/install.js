@@ -10,76 +10,30 @@ import { t, setLanguage, getSupportedLanguages, detectSystemLanguage } from './i
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SKILLS_ROOT = path.join(__dirname, '../skills');
+const AGENTS_ROOT = path.join(__dirname, '../agents');
 const HOME_DIR = process.env.HOME || process.env.USERPROFILE;
 
 // ============================================================================
-// ARGUMENT PARSING FOR UNATTENDED MODE
+// CONSTANTS
 // ============================================================================
 
-function parseArgs(argv = process.argv.slice(2)) {
-  try {
-    const { values } = nodeParseArgs({
-      args: argv,
-      options: {
-        language: { type: 'string', short: 'l' },
-        path: { type: 'string', short: 'p' },
-        skills: { type: 'string', short: 's' },
-        list: { type: 'boolean' },
-        help: { type: 'boolean', short: 'h' },
-      },
-      strict: false,
-      allowPositionals: true,
-    });
+const PLATFORMS = {
+  claude: { name: 'Claude Code', emoji: '🔵' },
+  codex: { name: 'OpenAI Codex', emoji: '⚫' },
+  copilot: { name: 'GitHub Copilot', emoji: '🤖' },
+  gemini: { name: 'Google Gemini', emoji: '✨' },
+};
 
-    const unattended = !!(values.language || values.path || values.skills || values.list);
+const ITEM_TYPES = {
+  skills: { name: 'Skills', emoji: '⚡' },
+  agents: { name: 'Agents', emoji: '🤖' },
+  both: { name: 'Both Skills and Agents', emoji: '🚀' },
+};
 
-    return {
-      unattended,
-      help: !!values.help,
-      list: !!values.list,
-      language: values.language || null,
-      path: values.path || null,
-      skills: values.skills || null,
-    };
-  } catch (err) {
-    error(`${t('error')}: ${err.message}`);
-    process.exit(1);
-  }
-}
+// ============================================================================
+// COLOR UTILITIES
+// ============================================================================
 
-function printHelp() {
-  const help = `
-Usage:
-  yacs                                    Interactive mode (default)
-  yacs [options]                          Unattended mode
-
-Options:
-  -l, --language <code>   Language code (en, es, ca, eu, gl, an, ja)
-  -p, --path <path>       Install path: 'home' or an existing directory
-  -s, --skills <spec>     Skills to install (see below)
-      --list              List all available skills and exit
-  -h, --help              Show this help message
-
-Skill spec syntax:
-  all                     Install all available skills
-  skill1,skill2           Install specific skills by name
-  @category               Install all skills in a category
-  category:skill          Install a specific skill from a category
-  @cat1,skill2            Mix category and individual selections
-
-Examples:
-  yacs --path home --skills all
-  yacs -p home -s @development,code-reviewer
-  yacs --path /my/project --skills development:gamify
-  yacs --list
-  yacs --language es --path home --skills all
-  yacs --help
-`;
-  console.log(help);
-}
-
-
-// Color codes for terminal
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -90,7 +44,6 @@ const colors = {
   red: '\x1b[31m',
   blue: '\x1b[34m',
 };
-
 
 function log(text, color = 'reset') {
   console.log(`${colors[color]}${text}${colors.reset}`);
@@ -114,7 +67,10 @@ function info(text) {
   log(`ℹ ${text}`, 'blue');
 }
 
-// Get all skills organized by category
+// ============================================================================
+// FILE SYSTEM UTILITIES
+// ============================================================================
+
 function getSkills() {
   const skills = {};
 
@@ -132,20 +88,31 @@ function getSkills() {
     const skillDirs = fs.readdirSync(categoryPath).filter((f) => {
       return fs.statSync(path.join(categoryPath, f)).isDirectory();
     });
-
     skills[category] = skillDirs;
   });
 
   return skills;
 }
 
-// Read skill description from SKILL.md
+function getAgents() {
+  const agents = [];
+
+  if (!fs.existsSync(AGENTS_ROOT)) {
+    return agents;
+  }
+
+  const agentDirs = fs.readdirSync(AGENTS_ROOT).filter((f) => {
+    return fs.statSync(path.join(AGENTS_ROOT, f)).isDirectory();
+  });
+
+  return agentDirs;
+}
+
 function getSkillDescription(skillPath) {
   const skillMdPath = path.join(skillPath, 'SKILL.md');
   if (fs.existsSync(skillMdPath)) {
     const content = fs.readFileSync(skillMdPath, 'utf-8');
     const lines = content.split('\n');
-    // Get first line after title
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].startsWith('# ')) {
         for (let j = i + 1; j < lines.length; j++) {
@@ -159,8 +126,104 @@ function getSkillDescription(skillPath) {
   return '';
 }
 
+function getAgentDescription(agentPath) {
+  const readmePath = path.join(agentPath, 'README.md');
+  if (fs.existsSync(readmePath)) {
+    const content = fs.readFileSync(readmePath, 'utf-8');
+    const lines = content.split('\n');
+    // Get first paragraph after title
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith('# ')) {
+        for (let j = i + 1; j < lines.length; j++) {
+          const line = lines[j].trim();
+          if (line && !line.startsWith('#')) {
+            return line.substring(0, 60);
+          }
+        }
+      }
+    }
+  }
+  return '';
+}
+
 // ============================================================================
-// UNATTENDED MODE FUNCTIONS
+// ARGUMENT PARSING
+// ============================================================================
+
+function parseArgs(argv = process.argv.slice(2)) {
+  try {
+    const { values } = nodeParseArgs({
+      args: argv,
+      options: {
+        language: { type: 'string', short: 'l' },
+        path: { type: 'string', short: 'p' },
+        platform: { type: 'string' },
+        skills: { type: 'string', short: 's' },
+        agents: { type: 'string', short: 'a' },
+        list: { type: 'boolean' },
+        help: { type: 'boolean', short: 'h' },
+      },
+      strict: false,
+      allowPositionals: true,
+    });
+
+    const unattended = !!(values.language || values.path || values.skills || values.agents || values.list);
+
+    return {
+      unattended,
+      help: !!values.help,
+      list: !!values.list,
+      language: values.language || null,
+      path: values.path || null,
+      platform: values.platform || 'claude',
+      skills: values.skills || null,
+      agents: values.agents || null,
+    };
+  } catch (err) {
+    error(`${t('error')}: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+function printHelp() {
+  const help = `
+Usage:
+  yacs                                    Interactive mode (default)
+  yacs [options]                          Unattended mode
+
+Options:
+  -l, --language <code>   Language code (en, es, ca, eu, gl, an, ja)
+  -p, --path <path>       Install path: 'home' or an existing directory
+      --platform <name>   Platform: claude, codex, copilot, gemini
+  -s, --skills <spec>     Skills to install (see below)
+  -a, --agents <spec>     Agents to install (see below)
+      --list              List all available skills/agents and exit
+  -h, --help              Show this help message
+
+Skill spec syntax:
+  all                     Install all available skills
+  skill1,skill2           Install specific skills by name
+  @category               Install all skills in a category
+  category:skill          Install a specific skill from a category
+  @cat1,skill2            Mix category and individual selections
+
+Agent spec syntax:
+  all                     Install all available agents
+  agent1,agent2           Install specific agents by name
+
+Examples:
+  yacs --path home --skills all
+  yacs -p home -s @development,code-reviewer -a all
+  yacs --platform claude --path home --skills development:gamify
+  yacs --list
+  yacs --language es --path home --skills all --agents codebase-quality-analyzer
+  yacs --help
+`;
+  console.log(help);
+}
+
+// ============================================================================
+// LISTING (UNATTENDED MODE)
 // ============================================================================
 
 function printSkillList(allSkills) {
@@ -186,6 +249,24 @@ function printSkillList(allSkills) {
   log('');
 }
 
+function printAgentList(agents) {
+  if (agents.length === 0) return;
+
+  header('Available Agents');
+  log(`${colors.cyan}agents${colors.reset}`);
+  for (const agentName of agents) {
+    const agentPath = path.join(AGENTS_ROOT, agentName);
+    const description = getAgentDescription(agentPath);
+    const desc = description ? ` - ${description}` : '';
+    log(`  • ${agentName}${desc}`);
+  }
+  log('');
+}
+
+// ============================================================================
+// UNATTENDED MODE: PATH & ITEMS RESOLUTION
+// ============================================================================
+
 function resolveInstallPath(rawPath) {
   if (!rawPath) {
     throw new Error('--path is required in unattended mode');
@@ -193,23 +274,21 @@ function resolveInstallPath(rawPath) {
 
   if (rawPath === 'home') {
     const skillsPath = path.join(HOME_DIR, '.claude', 'skills');
-    return { path: skillsPath, source: 'home' };
+    return { path: skillsPath, type: 'skills', source: 'home' };
   }
 
-  // Resolve to absolute path
   const resolvedPath = path.resolve(rawPath);
-
   if (!fs.existsSync(resolvedPath)) {
     throw new Error(`Path does not exist: ${resolvedPath}`);
   }
 
   const skillsPath = path.join(resolvedPath, 'skills');
-  return { path: skillsPath, source: 'custom' };
+  return { path: skillsPath, type: 'skills', source: 'custom' };
 }
 
 function resolveSkills(rawSkills, allSkills) {
   if (!rawSkills) {
-    throw new Error('--skills is required in unattended mode');
+    return [];
   }
 
   const tokens = rawSkills.split(',').map(t => t.trim());
@@ -217,7 +296,6 @@ function resolveSkills(rawSkills, allSkills) {
   const unrecognized = [];
   const allSkillsList = [];
 
-  // Build flat list of all skills for quick lookup
   for (const [category, skillNames] of Object.entries(allSkills)) {
     for (const skillName of skillNames) {
       const skillPath = path.join(SKILLS_ROOT, category, skillName);
@@ -234,32 +312,25 @@ function resolveSkills(rawSkills, allSkills) {
 
   for (const token of tokens) {
     if (token === 'all') {
-      // Add all skills
       selected.push(...allSkillsList);
     } else if (token.startsWith('@')) {
-      // Category selection: @development
       const categoryName = token.substring(1);
       const categorySkills = allSkillsList.filter(s => s.category === categoryName);
-
       if (categorySkills.length === 0) {
         unrecognized.push(`@${categoryName} (category not found)`);
       } else {
         selected.push(...categorySkills);
       }
     } else if (token.includes(':')) {
-      // Specific skill: development:gamify
       const [category, skillName] = token.split(':', 2);
       const skill = allSkillsList.find(s => s.category === category && s.name === skillName);
-
       if (!skill) {
         unrecognized.push(`${token} (not found)`);
       } else {
         selected.push(skill);
       }
     } else {
-      // Bare skill name: search across all categories
       const matches = allSkillsList.filter(s => s.name === token);
-
       if (matches.length === 0) {
         unrecognized.push(token);
       } else {
@@ -272,22 +343,109 @@ function resolveSkills(rawSkills, allSkills) {
   }
 
   if (unrecognized.length > 0) {
-    throw new Error(`Unknown skills or categories: ${unrecognized.join(', ')}`);
+    throw new Error(`Unknown skills: ${unrecognized.join(', ')}`);
   }
 
-  // Deduplicate by id
   const uniqueSkills = Array.from(new Map(selected.map(s => [s.id, s])).values());
-
   return uniqueSkills;
 }
 
-// Interactive skill selection with interactive menu
+function resolveAgents(rawAgents, agentsList) {
+  if (!rawAgents || agentsList.length === 0) {
+    return [];
+  }
+
+  const tokens = rawAgents.split(',').map(t => t.trim());
+  const selected = [];
+  const unrecognized = [];
+
+  for (const token of tokens) {
+    if (token === 'all') {
+      selected.push(...agentsList);
+    } else {
+      const agent = agentsList.find(a => a === token);
+      if (!agent) {
+        unrecognized.push(token);
+      } else {
+        selected.push(agent);
+      }
+    }
+  }
+
+  if (unrecognized.length > 0) {
+    throw new Error(`Unknown agents: ${unrecognized.join(', ')}`);
+  }
+
+  return Array.from(new Set(selected)); // Deduplicate
+}
+
+// ============================================================================
+// INTERACTIVE MODE: SELECTORS
+// ============================================================================
+
+async function selectPlatform() {
+  const choices = Object.entries(PLATFORMS).map(([key, data]) => ({
+    name: `${data.emoji}  ${data.name}`,
+    value: key,
+  }));
+
+  const result = await inquirer.prompt({
+    type: 'rawlist',
+    name: 'platform',
+    message: t('selectPlatformMessage') || 'Which platform are you using Claude Code with?',
+    choices: choices,
+    default: 0,
+  });
+
+  return result.platform;
+}
+
+async function selectLanguage() {
+  const detectedLang = detectSystemLanguage();
+  const langChoices = Object.entries(getSupportedLanguages()).map(([code, langData]) => ({
+    name: `${langData.flag}  ${langData.name}`,
+    value: code,
+  }));
+
+  const langChoice = await inquirer.prompt({
+    type: 'rawlist',
+    name: 'language',
+    message: '\nSelect language / Selecciona idioma / Aukeratu hizkuntza:',
+    choices: langChoices,
+    default: langChoices.findIndex(c => c.value === detectedLang),
+  });
+
+  return langChoice.language;
+}
+
+async function selectItemType(agents) {
+  const choices = [
+    { name: `${ITEM_TYPES.skills.emoji}  ${t('installSkills') || 'Install Skills'}`, value: 'skills' },
+  ];
+
+  if (agents.length > 0) {
+    choices.push(
+      { name: `${ITEM_TYPES.agents.emoji}  ${t('installAgents') || 'Install Agents'}`, value: 'agents' },
+      { name: `${ITEM_TYPES.both.emoji}  ${t('installBoth') || 'Install Both Skills and Agents'}`, value: 'both' }
+    );
+  }
+
+  const result = await inquirer.prompt({
+    type: 'rawlist',
+    name: 'itemType',
+    message: t('selectItemTypeMessage') || 'What do you want to install?',
+    choices: choices,
+  });
+
+  return result.itemType;
+}
+
 async function selectSkills(skills) {
   const allSkills = [];
   const choices = [];
 
-  header(t('selectSkills'));
-  log(`${colors.dim}${t('selectSkillsHint')}${colors.reset}\n`);
+  header(t('selectSkills') || 'Select Skills');
+  log(`${colors.dim}${t('selectSkillsHint') || 'Use ↑↓ to navigate, SPACE to select/deselect'}${colors.reset}\n`);
 
   let skillIndex = 0;
   for (const [category, skillNames] of Object.entries(skills)) {
@@ -304,8 +462,6 @@ async function selectSkills(skills) {
       };
 
       allSkills.push(skill);
-
-      // Format the choice
       const displayName = `${skillName} (${category})`;
       const descDisplay = description ? ` - ${description}` : '';
 
@@ -322,75 +478,73 @@ async function selectSkills(skills) {
     const result = await inquirer.prompt({
       type: 'checkbox',
       name: 'skills',
-      message: t('selectSkillsMessage'),
+      message: t('selectSkillsMessage') || 'Select skills to install:',
       choices: choices,
       pageSize: 15,
     });
 
-    // Inquirer returns the values we specified (indices)
     const selectedIndices = result.skills || [];
-
-    if (Array.isArray(selectedIndices)) {
-      return selectedIndices
-        .map(idx => allSkills[idx])
-        .filter(skill => skill && skill.category && skill.name);
-    }
-
-    return [];
+    return selectedIndices
+      .map(idx => allSkills[idx])
+      .filter(skill => skill && skill.category && skill.name);
   } catch (err) {
     if (err.isTtyError || err.message?.includes('force closed')) {
-      log(`\n❌ ${t('installationCancelled')}`);
+      log(`\n❌ ${t('installationCancelled') || 'Installation cancelled'}`);
       process.exit(0);
     }
     throw err;
   }
 }
 
-// Copy skill to destination
-function copySkill(skillPath, destPath) {
-  if (!fs.existsSync(destPath)) {
-    fs.mkdirSync(destPath, { recursive: true });
+async function selectAgents(agents) {
+  const choices = agents.map((agentName, idx) => {
+    const agentPath = path.join(AGENTS_ROOT, agentName);
+    const description = getAgentDescription(agentPath);
+    const descDisplay = description ? ` - ${description}` : '';
+    return {
+      name: agentName + descDisplay,
+      value: idx,
+    };
+  });
+
+  header(t('selectAgents') || 'Select Agents');
+  log(`${colors.dim}${t('selectAgentsHint') || 'Use ↑↓ to navigate, SPACE to select/deselect'}${colors.reset}\n`);
+
+  try {
+    const result = await inquirer.prompt({
+      type: 'checkbox',
+      name: 'agents',
+      message: t('selectAgentsMessage') || 'Select agents to install:',
+      choices: choices,
+      pageSize: 15,
+    });
+
+    const selectedIndices = result.agents || [];
+    return selectedIndices.map(idx => agents[idx]).filter(Boolean);
+  } catch (err) {
+    if (err.isTtyError || err.message?.includes('force closed')) {
+      log(`\n❌ ${t('installationCancelled') || 'Installation cancelled'}`);
+      process.exit(0);
+    }
+    throw err;
   }
-
-  const skillName = path.basename(skillPath);
-  const skillDestPath = path.join(destPath, skillName);
-
-  // Remove existing if present
-  if (fs.existsSync(skillDestPath)) {
-    fs.rmSync(skillDestPath, { recursive: true, force: true });
-  }
-
-  // Copy skill folder
-  fs.cpSync(skillPath, skillDestPath, { recursive: true });
-
-  return skillDestPath;
 }
 
-// Get installation path from user
 async function getInstallPath() {
-  header(t('selectLocation'));
+  header(t('selectLocation') || 'Select Location');
 
   const locChoice = await inquirer.prompt({
     type: 'rawlist',
     name: 'location',
-    message: t('selectLocationMessage'),
+    message: t('selectLocationMessage') || 'Where should the skills be installed?',
     choices: [
-      {
-        name: t('homeDirectory'),
-        value: 'home',
-      },
-      {
-        name: t('customRepository'),
-        value: 'custom',
-      },
+      { name: t('homeDirectory') || 'Home Directory (~/.claude)', value: 'home' },
+      { name: t('customRepository') || 'Custom Repository', value: 'custom' },
     ],
   });
 
-  const location = locChoice.location;
-
-  // Handle both direct value and index-based selection
-  const isHome = location === 'home' || location === 0 || location === '0';
-  const isCustom = location === 'custom' || location === 1 || location === '1';
+  const isHome = locChoice.location === 'home' || locChoice.location === 0;
+  const isCustom = locChoice.location === 'custom' || locChoice.location === 1;
 
   if (isHome) {
     const skillsPath = path.join(HOME_DIR, '.claude', 'skills');
@@ -399,13 +553,13 @@ async function getInstallPath() {
     const pathChoice = await inquirer.prompt({
       type: 'input',
       name: 'customPath',
-      message: t('enterCustomPath'),
+      message: t('enterCustomPath') || 'Enter custom path:',
       validate(value) {
         if (!value.trim()) {
-          return t('pathEmpty');
+          return t('pathEmpty') || 'Path cannot be empty';
         }
         if (!fs.existsSync(value)) {
-          return `${t('pathNotExists')}: ${value}`;
+          return `${t('pathNotExists') || 'Path does not exist'}: ${value}`;
         }
         return true;
       },
@@ -415,43 +569,95 @@ async function getInstallPath() {
     return { path: skillsPath, source: 'custom' };
   }
 
-  throw new Error(`${t('invalidSelection')}: ${location}`);
+  throw new Error(`${t('invalidSelection') || 'Invalid selection'}: ${locChoice.location}`);
 }
 
-// Review and confirm selection
 async function reviewSelection(selected, installPath) {
-  header(t('review'));
+  header(t('review') || 'Review Selection');
 
-  log(`${colors.bright}${t('destination')}:${colors.reset} ${installPath}`);
-  log(`${colors.bright}${t('totalSkills')}:${colors.reset} ${selected.length}\n`);
+  log(`${colors.bright}${t('destination') || 'Destination'}:${colors.reset} ${installPath}`);
+  log(`${colors.bright}${t('totalItems') || 'Total items'}:${colors.reset} ${selected.length}\n`);
 
-  // Group by category
-  const byCategory = {};
-  selected.forEach((skill) => {
-    if (!byCategory[skill.category]) {
-      byCategory[skill.category] = [];
+  // Separate skills and agents
+  const skills = selected.filter(item => item.category);
+  const agents = selected.filter(item => !item.category);
+
+  if (skills.length > 0) {
+    log(`${colors.yellow}Skills${colors.reset}`);
+    const byCategory = {};
+    skills.forEach((skill) => {
+      if (!byCategory[skill.category]) {
+        byCategory[skill.category] = [];
+      }
+      byCategory[skill.category].push(skill.name);
+    });
+    for (const [category, names] of Object.entries(byCategory)) {
+      log(`  ${colors.dim}${category}${colors.reset}`);
+      names.forEach((name) => log(`    • ${name}`));
     }
-    byCategory[skill.category].push(skill.name);
-  });
+  }
 
-  for (const [category, names] of Object.entries(byCategory)) {
-    log(`${colors.yellow}${category}${colors.reset}`);
-    names.forEach((name) => log(`  • ${name}`));
+  if (agents.length > 0) {
+    if (skills.length > 0) log('');
+    log(`${colors.yellow}Agents${colors.reset}`);
+    agents.forEach((agent) => log(`  • ${agent.name}`));
   }
 
   const confirmation = await inquirer.prompt({
     type: 'confirm',
     name: 'proceed',
-    message: t('proceedInstallation'),
+    message: t('proceedInstallation') || 'Proceed with installation?',
     default: true,
   });
 
   return confirmation.proceed;
 }
 
-// Main installation process
+// ============================================================================
+// INSTALLATION FUNCTIONS
+// ============================================================================
+
+function copySkill(skillPath, destPath) {
+  if (!fs.existsSync(destPath)) {
+    fs.mkdirSync(destPath, { recursive: true });
+  }
+
+  const skillName = path.basename(skillPath);
+  const skillDestPath = path.join(destPath, skillName);
+
+  if (fs.existsSync(skillDestPath)) {
+    fs.rmSync(skillDestPath, { recursive: true, force: true });
+  }
+
+  fs.cpSync(skillPath, skillDestPath, { recursive: true });
+  return skillDestPath;
+}
+
+function copyAgent(agentName, destPath) {
+  const agentPath = path.join(AGENTS_ROOT, agentName);
+
+  if (!fs.existsSync(agentPath)) {
+    throw new Error(`Agent not found: ${agentName}`);
+  }
+
+  const agentsDestPath = path.join(destPath, '..', 'agents');
+
+  if (!fs.existsSync(agentsDestPath)) {
+    fs.mkdirSync(agentsDestPath, { recursive: true });
+  }
+
+  const agentDestPath = path.join(agentsDestPath, agentName);
+
+  if (fs.existsSync(agentDestPath)) {
+    fs.rmSync(agentDestPath, { recursive: true, force: true });
+  }
+
+  fs.cpSync(agentPath, agentDestPath, { recursive: true });
+  return agentDestPath;
+}
+
 async function installSkills(selected, installPath) {
-  header(t('installing'));
+  header(t('installingSkills') || '⚙️  INSTALLING SKILLS');
 
   for (const skill of selected) {
     try {
@@ -461,120 +667,177 @@ async function installSkills(selected, installPath) {
       error(`${skill.category}/${skill.name}: ${err.message}`);
     }
   }
+}
 
-  header(t('completed'));
-  log(`${t('installedAt')}:`);
-  log(`  ${colors.bright}${installPath}${colors.reset}\n`);
+async function installAgents(selected, installPath) {
+  header(t('installingAgents') || '⚙️  INSTALLING AGENTS');
+
+  for (const agentName of selected) {
+    try {
+      copyAgent(agentName, installPath);
+      success(agentName);
+    } catch (err) {
+      error(`${agentName}: ${err.message}`);
+    }
+  }
 }
 
 // ============================================================================
-// UNATTENDED MODE EXECUTION
+// MAIN EXECUTION MODES
 // ============================================================================
 
 async function runUnattended(args) {
   setLanguage(args.language || detectSystemLanguage());
 
-  header(t('title'));
+  const platform = args.platform || 'claude';
+  const platformName = PLATFORMS[platform]?.name || 'Claude Code';
+
+  header(`${t('title') || 'YACS'} - ${platformName}`);
 
   const skills = getSkills();
+  const agents = getAgents();
 
-  // Handle --list flag
   if (args.list) {
     printSkillList(skills);
+    printAgentList(agents);
     process.exit(0);
   }
 
-  // Validate required arguments
   if (!args.path) {
-    error(t('unattendedMissingPath'));
+    error(t('unattendedMissingPath') || '--path is required in unattended mode');
     process.exit(1);
   }
 
-  if (!args.skills) {
-    error(t('unattendedMissingSkills'));
+  if (!args.skills && !args.agents) {
+    error(t('unattendedMissingItems') || '--skills or --agents is required in unattended mode');
     process.exit(1);
   }
 
-  // Resolve installation path and skills
   const installPath = resolveInstallPath(args.path);
-  const selected = resolveSkills(args.skills, skills);
+  const selectedSkills = resolveSkills(args.skills, skills);
+  const selectedAgents = resolveAgents(args.agents, agents);
 
-  if (selected.length === 0) {
-    error(t('unattendedNoSkillsMatched'));
+  if (selectedSkills.length === 0 && selectedAgents.length === 0) {
+    error(t('unattendedNoItemsMatched') || 'No skills or agents matched your specification');
     process.exit(1);
   }
 
-  // Display summary (no confirmation prompt in unattended mode)
-  log(`${colors.bright}${t('destination')}:${colors.reset} ${installPath.path}`);
-  log(`${colors.bright}${t('totalSkills')}:${colors.reset} ${selected.length}\n`);
+  log(`${colors.bright}${t('platform') || 'Platform'}:${colors.reset} ${platformName}`);
+  log(`${colors.bright}${t('destination') || 'Destination'}:${colors.reset} ${installPath.path}`);
+  log(`${colors.bright}${t('totalSkills') || 'Skills'}:${colors.reset} ${selectedSkills.length}`);
+  if (selectedAgents.length > 0) {
+    log(`${colors.bright}${t('totalAgents') || 'Agents'}:${colors.reset} ${selectedAgents.length}`);
+  }
+  log('');
 
-  // Group by category for display
-  const byCategory = {};
-  selected.forEach((skill) => {
-    if (!byCategory[skill.category]) {
-      byCategory[skill.category] = [];
+  if (selectedSkills.length > 0) {
+    const byCategory = {};
+    selectedSkills.forEach((skill) => {
+      if (!byCategory[skill.category]) {
+        byCategory[skill.category] = [];
+      }
+      byCategory[skill.category].push(skill.name);
+    });
+
+    log(`${colors.yellow}Skills${colors.reset}`);
+    for (const [category, names] of Object.entries(byCategory)) {
+      log(`  ${colors.dim}${category}${colors.reset}`);
+      names.forEach((name) => log(`    • ${name}`));
     }
-    byCategory[skill.category].push(skill.name);
-  });
+  }
 
-  for (const [category, names] of Object.entries(byCategory)) {
-    log(`${colors.yellow}${category}${colors.reset}`);
-    names.forEach((name) => log(`  • ${name}`));
+  if (selectedAgents.length > 0) {
+    if (selectedSkills.length > 0) log('');
+    log(`${colors.yellow}Agents${colors.reset}`);
+    selectedAgents.forEach((name) => log(`  • ${name}`));
   }
 
   log('');
 
-  // Install
-  await installSkills(selected, installPath.path);
+  if (selectedSkills.length > 0) {
+    await installSkills(selectedSkills, installPath.path);
+  }
+  if (selectedAgents.length > 0) {
+    await installAgents(selectedAgents, installPath.path);
+  }
+
+  header(t('completed') || 'Installation Completed');
+  log(`${t('installedAt') || 'Installed at'}:`);
+  log(`  ${colors.bright}${installPath.path}${colors.reset}\n`);
+
   process.exit(0);
 }
 
-// ============================================================================
-// INTERACTIVE MODE EXECUTION (refactored from original main)
-// ============================================================================
-
 async function runInteractive() {
-  // Detect system language or allow user selection
-  const detectedLang = detectSystemLanguage();
-  const langChoices = Object.entries(getSupportedLanguages()).map(([code, langData]) => ({
-    name: `${langData.flag}  ${langData.name}`,
-    value: code,
-  }));
+  // 1. Select Platform
+  const selectedPlatform = await selectPlatform();
+  const platformName = PLATFORMS[selectedPlatform].name;
 
-  const langChoice = await inquirer.prompt({
-    type: 'rawlist',
-    name: 'language',
-    message: '\nSelect language / Selecciona idioma / Aukeratu hizkuntza:',
-    choices: langChoices,
-    default: langChoices.findIndex(c => c.value === detectedLang),
-  });
+  // 2. Select Language
+  const selectedLanguage = await selectLanguage();
+  setLanguage(selectedLanguage);
 
-  setLanguage(langChoice.language);
-
-  header(t('title'));
+  header(`${t('title') || 'YACS'} - ${platformName}`);
 
   const skills = getSkills();
+  const agents = getAgents();
   const totalSkills = Object.values(skills).reduce((sum, arr) => sum + arr.length, 0);
 
-  log(`${colors.bright}${t('availableSkills')}:${colors.reset} ${totalSkills}`);
-  log(`${colors.bright}${t('categories')}:${colors.reset} ${Object.keys(skills).length}\n`);
+  log(`${colors.bright}${t('availableSkills') || 'Available skills'}:${colors.reset} ${totalSkills}`);
+  log(`${colors.bright}${t('categories') || 'Categories'}:${colors.reset} ${Object.keys(skills).length}`);
+  if (agents.length > 0) {
+    log(`${colors.bright}${t('availableAgents') || 'Available agents'}:${colors.reset} ${agents.length}`);
+  }
+  log('');
 
+  // 3. Select Install Path
   const installPath = await getInstallPath();
-  const selected = await selectSkills(skills);
 
-  if (selected.length === 0) {
-    error(t('noSkillsSelected'));
+  // 4. Select Item Type (Skills, Agents, or Both)
+  const itemType = await selectItemType(agents);
+
+  // 5. Select Skills and/or Agents
+  let selectedSkills = [];
+  let selectedAgents = [];
+
+  if (itemType === 'skills' || itemType === 'both') {
+    selectedSkills = await selectSkills(skills);
+  }
+
+  if (itemType === 'agents' || itemType === 'both') {
+    selectedAgents = await selectAgents(agents);
+  }
+
+  if (selectedSkills.length === 0 && selectedAgents.length === 0) {
+    error(t('noItemsSelected') || 'No items were selected');
     process.exit(1);
   }
 
-  const proceed = await reviewSelection(selected, installPath.path);
+  // 6. Review Selection
+  const combined = [
+    ...selectedSkills,
+    ...selectedAgents.map(name => ({ name, category: null }))
+  ];
+
+  const proceed = await reviewSelection(combined, installPath.path);
 
   if (!proceed) {
-    log(`\n❌ ${t('installationCancelled')}`);
+    log(`\n❌ ${t('installationCancelled') || 'Installation cancelled'}`);
     process.exit(0);
   }
 
-  await installSkills(selected, installPath.path);
+  // 7. Install
+  if (selectedSkills.length > 0) {
+    await installSkills(selectedSkills, installPath.path);
+  }
+  if (selectedAgents.length > 0) {
+    await installAgents(selectedAgents, installPath.path);
+  }
+
+  header(t('completed') || 'Installation Completed');
+  log(`${t('installedAt') || 'Installed at'}:`);
+  log(`  ${colors.bright}${installPath.path}${colors.reset}\n`);
+
   process.exit(0);
 }
 
@@ -597,17 +860,16 @@ async function main() {
       await runInteractive();
     }
   } catch (err) {
-    // Handle user cancellation gracefully
     if (err.isTtyError || err.message?.includes('force closed') || err.message?.includes('User cancelled')) {
-      log(`\n❌ ${t('operationCancelled')}`);
+      log(`\n❌ ${t('operationCancelled') || 'Operation cancelled'}`);
       process.exit(0);
     }
-    error(`${t('error')}: ${err.message}`);
+    error(`${t('error') || 'Error'}: ${err.message}`);
     process.exit(1);
   }
 }
 
 main().catch((err) => {
-  error(`${t('error')}: ${err.message}`);
+  error(`${t('error') || 'Error'}: ${err.message}`);
   process.exit(1);
 });
