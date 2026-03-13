@@ -15,7 +15,8 @@
     "src/install.js",
     "src/i18n.js",
     "i18n/",
-    "skills/"
+    "skills/",
+    "agents/"
   ],
   "publishConfig": {
     "access": "public"

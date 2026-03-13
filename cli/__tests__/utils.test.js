@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILLS_ROOT = path.join(__dirname, '../../skills');
+const AGENTS_ROOT = path.join(__dirname, '../../agents');
 
 describe('Skills Directory', () => {
   it('should have skills directory', () => {
@@ -70,6 +71,50 @@ describe('Skills Directory', () => {
     });
 
     expect(totalSkills).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe('Agents Directory', () => {
+  it('should have agents directory', () => {
+    expect(fs.existsSync(AGENTS_ROOT)).toBe(true);
+  });
+
+  it('should have at least 1 agent', () => {
+    const agents = fs.readdirSync(AGENTS_ROOT).filter((f) => {
+      return fs.statSync(path.join(AGENTS_ROOT, f)).isDirectory();
+    });
+    expect(agents.length).toBeGreaterThan(0);
+  });
+
+  it('should have expected agents', () => {
+    const agents = fs.readdirSync(AGENTS_ROOT).filter((f) => {
+      return fs.statSync(path.join(AGENTS_ROOT, f)).isDirectory();
+    });
+
+    const expectedAgents = [
+      'backend-expert',
+      'frontend-expert',
+      'infra-expert',
+      'security-expert',
+      'qa-expert',
+    ];
+
+    expectedAgents.forEach((agent) => {
+      expect(agents).toContain(agent);
+    });
+  });
+
+  it('should have AGENT.md files in all agent directories', () => {
+    const agents = fs.readdirSync(AGENTS_ROOT).filter((f) => {
+      return fs.statSync(path.join(AGENTS_ROOT, f)).isDirectory();
+    });
+
+    agents.forEach((agentName) => {
+      const agentPath = path.join(AGENTS_ROOT, agentName);
+      const files = fs.readdirSync(agentPath);
+      const hasAgentMd = files.some((f) => f.toLowerCase() === 'agent.md');
+      expect(hasAgentMd).toBe(true);
+    });
   });
 });
 
