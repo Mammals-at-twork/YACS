@@ -29,14 +29,26 @@ jobs:
       - name: Verify npm version
         run: npm --version
 
+      - name: Clear npm config
+        run: npm config delete always-auth
+
+      - name: Show npm config before ci
+        run: npm config list
+
       - run: npm ci
+
       - run: npm test
 
-      - name: Check authentication
-        run: npm whoami
+      - name: Show .npmrc (censored)
+        run: cat ~/.npmrc | grep -v "^;" || echo "No .npmrc found"
 
-      - name: Show npm config
-        run: npm config list
+      - name: Check authentication with debug
+        run: npm whoami --verbose 2>&1 || true
+
+      - name: Check OIDC token
+        run: |
+          echo "NODE_AUTH_TOKEN: ${NODE_AUTH_TOKEN:-'NOT SET'}"
+          echo "NPM_TOKEN: ${NPM_TOKEN:-'NOT SET'}"
 
       - name: Dry run publish
         run: npm publish --dry-run

@@ -13,7 +13,6 @@ jobs:
     permissions:
       contents: read
       id-token: write  # Required for OIDC
-
     
     defaults:
       run:
@@ -36,10 +35,9 @@ jobs:
           VERSION="${VERSION#v}"
           npm version "$VERSION" --no-git-tag-version
 
-      - name: Publish npm package
-        run: npm publish --provenance
+      - run: npm publish --provenance --access public --otp=${{ secrets.NPM_OTP }}
         env:
-          NPM_CONFIG_PROVENANCE: true
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
