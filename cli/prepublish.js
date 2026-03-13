@@ -6,21 +6,6 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const skillsDir = path.resolve(__dirname, 'skills');
-const skillsSrcDir = path.resolve(__dirname, '..', 'skills');
-
-// Remove existing skills directory
-if (fs.existsSync(skillsDir)) {
-  fs.rmSync(skillsDir, { recursive: true, force: true });
-  console.log('✓ Removed old skills directory');
-}
-
-// Copy skills from parent directory
-if (!fs.existsSync(skillsSrcDir)) {
-  console.error('✗ Skills source directory not found:', skillsSrcDir);
-  process.exit(1);
-}
-
 function copyDir(src, dest) {
   if (!fs.existsSync(dest)) {
     fs.mkdirSync(dest, { recursive: true });
@@ -40,10 +25,30 @@ function copyDir(src, dest) {
   }
 }
 
-try {
-  copyDir(skillsSrcDir, skillsDir);
-  console.log('✓ Copied skills directory');
-} catch (error) {
-  console.error('✗ Failed to copy skills:', error.message);
-  process.exit(1);
+// ── Skills ──────────────────────────────────────────────────────────────────
+copyFile('skills');
+// ── Agents ───────────────────────────────────────────────────────────────────
+copyFile('agents');
+
+function copyFile(folder) {
+  const folderDir = path.resolve(__dirname, folder);
+  const folderSrcDir = path.resolve(__dirname, '..', folder);
+
+  if (fs.existsSync(folderDir)) {
+    fs.rmSync(folderDir, { recursive: true, force: true });
+    console.log(`✓ Removed old ${folderDir} directory`);
+  }
+
+  if (!fs.existsSync(folderSrcDir)) {
+    console.error(`✗ ${folder} source directory not found:`, folderSrcDir);
+    process.exit(1);
+  }
+
+  try {
+    copyDir(folderSrcDir, folderDir);
+    console.log(`✓ Copied ${folderDir} directory`);
+  } catch (error) {
+    console.error(`✗ Failed to copy ${folderDir}:`, error.message);
+    process.exit(1);
+  }
 }

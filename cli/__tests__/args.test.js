@@ -4,12 +4,14 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILLS_ROOT = path.join(__dirname, '../../skills');
+const AGENTS_ROOT = path.join(__dirname, '../../agents');
 
 // Mock implementations for testing
 function parseArgs(argv = []) {
   let language = null;
   let path_arg = null;
   let skills = null;
+  let agents = null;
   let list = false;
   let help = false;
 
@@ -24,6 +26,9 @@ function parseArgs(argv = []) {
     } else if (arg === '-s' || arg === '--skills') {
       skills = argv[i + 1];
       i++;
+    } else if (arg === '-a' || arg === '--agents') {
+      agents = argv[i + 1];
+      i++;
     } else if (arg === '--list') {
       list = true;
     } else if (arg === '-h' || arg === '--help') {
@@ -31,7 +36,7 @@ function parseArgs(argv = []) {
     }
   }
 
-  const unattended = !!(language || path_arg || skills || list);
+  const unattended = !!(language || path_arg || skills || agents || list);
 
   return {
     unattended,
@@ -40,7 +45,34 @@ function parseArgs(argv = []) {
     language,
     path: path_arg,
     skills,
+    agents,
   };
+}
+
+function getAgents() {
+  if (!fs.existsSync(AGENTS_ROOT)) return [];
+  return fs.readdirSync(AGENTS_ROOT)
+    .filter(f => fs.statSync(path.join(AGENTS_ROOT, f)).isDirectory())
+    .map(name => ({ name, path: path.join(AGENTS_ROOT, name) }));
+}
+
+function resolveAgents(rawAgents, allAgents) {
+  if (!rawAgents) throw new Error('--agents is required');
+  if (rawAgents === 'all') return [...allAgents];
+
+  const names = rawAgents.split(',').map(n => n.trim());
+  const selected = [];
+  const unrecognized = [];
+
+  for (const name of names) {
+    const agent = allAgents.find(a => a.name === name);
+    if (!agent) unrecognized.push(name);
+    else selected.push(agent);
+  }
+
+  if (unrecognized.length > 0) throw new Error(`Unknown agent: ${unrecognized.join(', ')}`);
+
+  return Array.from(new Map(selected.map(a => [a.name, a])).values());
 }
 
 function getSkills() {
@@ -298,5 +330,70 @@ describe('Skill Resolution', () => {
     expect(() => {
       resolveSkills(null, allSkills);
     }).toThrow();
+  });
+});
+
+describe('Agent Parser', () => {
+  it('should return agents: null when not provided', () => {
+    const result = parseArgs([]);
+    expect(result.agents).toBeNull();
+  });
+
+  it('should parse --agents with all', () => {
+    const result = parseArgs(['--agents', 'all']);
+    expect(result.agents).toBe('all');
+    expect(result.unattended).toBe(true);
+  });
+
+  it('should parse -a short form', () => {
+    const result = parseArgs(['-a', 'backend-expert']);
+    expect(result.agents).toBe('backend-expert');
+    expect(result.unattended).toBe(true);
+  });
+
+  it('should parse --agents alongside --skills', () => {
+    const result = parseArgs(['--path', 'home', '--skills', 'all', '--agents', 'all']);
+    expect(result.skills).toBe('all');
+    expect(result.agents).toBe('all');
+    expect(result.unattended).toBe(true);
+  });
+});
+
+describe('Agent Resolution', () => {
+  const allAgents = getAgents();
+
+  it('should resolve "all" to all agents', () => {
+    const result = resolveAgents('all', allAgents);
+    expect(result.length).toBe(allAgents.length);
+  });
+
+  it('should resolve a single agent by name', () => {
+    if (allAgents.length > 0) {
+      const result = resolveAgents(allAgents[0].name, allAgents);
+      expect(result.length).toBe(1);
+      expect(result[0].name).toBe(allAgents[0].name);
+    }
+  });
+
+  it('should resolve comma-separated agent names', () => {
+    if (allAgents.length >= 2) {
+      const result = resolveAgents(`${allAgents[0].name},${allAgents[1].name}`, allAgents);
+      expect(result.length).toBe(2);
+    }
+  });
+
+  it('should throw for unknown agent', () => {
+    expect(() => resolveAgents('nonexistent-agent-xyz', allAgents)).toThrow();
+  });
+
+  it('should deduplicate agents', () => {
+    if (allAgents.length > 0) {
+      const result = resolveAgents(`${allAgents[0].name},${allAgents[0].name}`, allAgents);
+      expect(result.length).toBe(1);
+    }
+  });
+
+  it('should throw if rawAgents is null', () => {
+    expect(() => resolveAgents(null, allAgents)).toThrow();
   });
 });
