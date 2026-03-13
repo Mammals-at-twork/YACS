@@ -1,6 +1,6 @@
 {
   "name": "@mammals-at-work/yacs",
-  "version": "0.8.9",
+  "version": "0.9.0",
   "description": "Interactive CLI installer for Y.A.C.S. (Yet Another Claude Skills)",
   "type": "module",
   "bin": {
@@ -16,7 +16,8 @@
     "src/i18n.js",
     "i18n/",
     "skills/",
-    "agents/"
+    "agents/",
+    "package-lock.json"
   ],
   "publishConfig": {
     "access": "public"
