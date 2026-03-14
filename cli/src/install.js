@@ -14,6 +14,17 @@ const AGENTS_ROOT = path.join(__dirname, '../agents');
 const HOME_DIR = process.env.HOME || process.env.USERPROFILE;
 
 // ============================================================================
+// CLI TARGETS CONFIGURATION
+// ============================================================================
+
+const CLI_TARGETS = {
+  claude: { name: 'Claude Code', homeDir: '.claude' },
+  gemini: { name: 'Gemini CLI', homeDir: '.gemini' },
+  codex: { name: 'Codex CLI', homeDir: '.codex' },
+  copilot: { name: 'GitHub Copilot', homeDir: '.copilot' },
+};
+
+// ============================================================================
 // ARGUMENT PARSING FOR UNATTENDED MODE
 // ============================================================================
 
@@ -23,6 +34,7 @@ function parseArgs(argv = process.argv.slice(2)) {
       args: argv,
       options: {
         language: { type: 'string', short: 'l' },
+        cli: { type: 'string', short: 'c' },
         path: { type: 'string', short: 'p' },
         skills: { type: 'string', short: 's' },
         agents: { type: 'string', short: 'a' },
@@ -33,13 +45,14 @@ function parseArgs(argv = process.argv.slice(2)) {
       allowPositionals: true,
     });
 
-    const unattended = !!(values.language || values.path || values.skills || values.agents || values.list);
+    const unattended = !!(values.language || values.cli || values.path || values.skills || values.agents || values.list);
 
     return {
       unattended,
       help: !!values.help,
       list: !!values.list,
       language: values.language || null,
+      cli: values.cli || null,
       path: values.path || null,
       skills: values.skills || null,
       agents: values.agents || null,
@@ -58,6 +71,7 @@ Usage:
 
 Options:
   -l, --language <code>   Language code (en, es, ca, eu, gl, an, ja)
+  -c, --cli <target>      Target CLI: claude, gemini, codex, copilot (default: claude)
   -p, --path <path>       Install path: 'home' or an existing directory
   -s, --skills <spec>     Skills to install (see below)
   -a, --agents <spec>     Agents to install: 'all' or comma-separated names
@@ -78,10 +92,10 @@ Agent spec syntax:
 Examples:
   yacs --path home --skills all
   yacs --path home --agents all
-  yacs --path home --skills all --agents all
-  yacs -p home -s @development,code-reviewer
+  yacs --cli gemini --path home --skills all --agents all
+  yacs -c codex -p home -s @development,code-reviewer
   yacs -p home -a backend-expert,security-expert
-  yacs --path /my/project --skills development:gamify
+  yacs --cli copilot --path /my/project --skills development:gamify
   yacs --list
   yacs --language es --path home --skills all
   yacs --help
@@ -240,15 +254,31 @@ function printList(allSkills, allAgents) {
   log('');
 }
 
-function resolveInstallPath(rawPath) {
+function resolveCli(rawCli) {
+  if (!rawCli) {
+    return CLI_TARGETS.claude;
+  }
+
+  const key = rawCli.toLowerCase();
+  if (!CLI_TARGETS[key]) {
+    const validTargets = Object.keys(CLI_TARGETS).join(', ');
+    throw new Error(`${t('unknownCliTarget')}: '${rawCli}'. ${t('validCliTargets')}: ${validTargets}`);
+  }
+
+  return CLI_TARGETS[key];
+}
+
+function resolveInstallPath(rawPath, cliTarget = CLI_TARGETS.claude) {
   if (!rawPath) {
     throw new Error('--path is required in unattended mode');
   }
 
+  const homeDir = cliTarget.homeDir;
+
   if (rawPath === 'home') {
     return {
-      skillsPath: path.join(HOME_DIR, '.claude', 'skills'),
-      agentsPath: path.join(HOME_DIR, '.claude', 'agents'),
+      skillsPath: path.join(HOME_DIR, homeDir, 'skills'),
+      agentsPath: path.join(HOME_DIR, homeDir, 'agents'),
       source: 'home',
     };
   }
@@ -260,8 +290,8 @@ function resolveInstallPath(rawPath) {
   }
 
   return {
-    skillsPath: path.join(resolvedPath, 'skills'),
-    agentsPath: path.join(resolvedPath, '.claude', 'agents'),
+    skillsPath: path.join(resolvedPath, homeDir, 'skills'),
+    agentsPath: path.join(resolvedPath, homeDir, 'agents'),
     source: 'custom',
   };
 }
@@ -359,6 +389,39 @@ function resolveAgents(rawAgents, allAgents) {
   }
 
   return Array.from(new Map(selected.map(a => [a.name, a])).values());
+}
+
+// Interactive CLI target selection
+async function selectCli() {
+  header(t('selectCli'));
+
+  const choices = Object.entries(CLI_TARGETS).map(([key, target]) => ({
+    name: `${target.name} (~/${target.homeDir})`,
+    value: key,
+  }));
+
+  try {
+    const result = await inquirer.prompt({
+      type: 'rawlist',
+      name: 'cli',
+      message: t('selectCliMessage'),
+      choices,
+    });
+
+    const selected = result.cli;
+    if (typeof selected === 'number') {
+      const keys = Object.keys(CLI_TARGETS);
+      return CLI_TARGETS[keys[selected]] || CLI_TARGETS.claude;
+    }
+
+    return CLI_TARGETS[selected] || CLI_TARGETS.claude;
+  } catch (err) {
+    if (err.isTtyError || err.message?.includes('force closed')) {
+      log(`\n❌ ${t('installationCancelled')}`);
+      process.exit(0);
+    }
+    throw err;
+  }
 }
 
 // Interactive skill selection
@@ -487,15 +550,17 @@ function copyAgent(agentPath, destPath) {
 }
 
 // Get installation path from user (interactive)
-async function getInstallPath() {
+async function getInstallPath(cliTarget = CLI_TARGETS.claude) {
   header(t('selectLocation'));
+
+  const homeDir = cliTarget.homeDir;
 
   const locChoice = await inquirer.prompt({
     type: 'rawlist',
     name: 'location',
     message: t('selectLocationMessage'),
     choices: [
-      { name: t('homeDirectory'), value: 'home' },
+      { name: `${t('homeDirectory')} (~/${homeDir})`, value: 'home' },
       { name: t('customRepository'), value: 'custom' },
     ],
   });
@@ -506,8 +571,8 @@ async function getInstallPath() {
 
   if (isHome) {
     return {
-      skillsPath: path.join(HOME_DIR, '.claude', 'skills'),
-      agentsPath: path.join(HOME_DIR, '.claude', 'agents'),
+      skillsPath: path.join(HOME_DIR, homeDir, 'skills'),
+      agentsPath: path.join(HOME_DIR, homeDir, 'agents'),
       source: 'home',
     };
   } else if (isCustom) {
@@ -527,8 +592,8 @@ async function getInstallPath() {
     });
 
     return {
-      skillsPath: path.join(pathChoice.customPath, 'skills'),
-      agentsPath: path.join(pathChoice.customPath, '.claude', 'agents'),
+      skillsPath: path.join(pathChoice.customPath, homeDir, 'skills'),
+      agentsPath: path.join(pathChoice.customPath, homeDir, 'agents'),
       source: 'custom',
     };
   }
@@ -537,9 +602,12 @@ async function getInstallPath() {
 }
 
 // Review and confirm selection before installing
-async function reviewSelection(selectedSkills, selectedAgents, installPath) {
+async function reviewSelection(selectedSkills, selectedAgents, installPath, cliTarget) {
   header(t('review'));
 
+  if (cliTarget) {
+    log(`${colors.bright}${t('targetCli')}:${colors.reset} ${cliTarget.name}`);
+  }
   log(`${colors.bright}${t('destination')}:${colors.reset}`);
   if (selectedSkills.length > 0) {
     log(`  skills → ${installPath.skillsPath}`);
@@ -621,6 +689,9 @@ async function runUnattended(args) {
 
   header(t('title'));
 
+  const cliTarget = resolveCli(args.cli);
+  info(`${t('selectedCli')}: ${cliTarget.name}\n`);
+
   const skills = getSkills();
   const agents = getAgents();
 
@@ -639,7 +710,7 @@ async function runUnattended(args) {
     process.exit(1);
   }
 
-  const installPath = resolveInstallPath(args.path);
+  const installPath = resolveInstallPath(args.path, cliTarget);
 
   let selectedSkills = [];
   if (args.skills) {
@@ -717,7 +788,11 @@ async function runInteractive() {
 
   header(t('title'));
 
-  // Step 1: What to install?
+  // Step 1: Select target CLI
+  const cliTarget = await selectCli();
+  info(`${t('selectedCli')}: ${cliTarget.name}\n`);
+
+  // Step 2: What to install?
   const modeChoice = await inquirer.prompt({
     type: 'rawlist',
     name: 'mode',
@@ -732,7 +807,7 @@ async function runInteractive() {
   const doSkills = modeChoice.mode === 'skills' || modeChoice.mode === 'both';
   const doAgents = modeChoice.mode === 'agents' || modeChoice.mode === 'both';
 
-  // Step 2: Show available counts
+  // Step 3: Show available counts
   const skills = getSkills();
   const agents = getAgents();
 
@@ -746,10 +821,10 @@ async function runInteractive() {
   }
   log('');
 
-  // Step 3: Install path
-  const installPath = await getInstallPath();
+  // Step 4: Install path
+  const installPath = await getInstallPath(cliTarget);
 
-  // Step 4: Select skills if needed
+  // Step 5: Select skills if needed
   let selectedSkills = [];
   if (doSkills) {
     selectedSkills = await selectSkills(skills);
@@ -759,7 +834,7 @@ async function runInteractive() {
     }
   }
 
-  // Step 5: Select agents if needed
+  // Step 6: Select agents if needed
   let selectedAgents = [];
   if (doAgents) {
     selectedAgents = await selectAgents(agents);
@@ -774,15 +849,15 @@ async function runInteractive() {
     process.exit(1);
   }
 
-  // Step 6: Review and confirm
-  const proceed = await reviewSelection(selectedSkills, selectedAgents, installPath);
+  // Step 7: Review and confirm
+  const proceed = await reviewSelection(selectedSkills, selectedAgents, installPath, cliTarget);
 
   if (!proceed) {
     log(`\n❌ ${t('installationCancelled')}`);
     process.exit(0);
   }
 
-  // Step 7: Install
+  // Step 8: Install
   if (selectedSkills.length > 0) {
     await installSkills(selectedSkills, installPath.skillsPath);
   }
