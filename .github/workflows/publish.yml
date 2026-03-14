@@ -11,8 +11,9 @@ jobs:
     name: Publish to npm Registry
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required for creating releases
-      id-token: write  # Required for OIDC
+      contents: write       # Required for creating releases
+      id-token: write        # Required for OIDC
+      attestations: write    # Required for artifact attestations
     
     defaults:
       run:
@@ -38,7 +39,18 @@ jobs:
       - run: npm publish --provenance --access public --otp=${{ secrets.NPM_OTP }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
+
+      - name: Download and attest published tarball
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          curl -sL "https://registry.npmjs.org/@mammals-at-work/yacs/-/yacs-${VERSION}.tgz" -o "yacs-${VERSION}.tgz"
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: cli/yacs-*.tgz
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
