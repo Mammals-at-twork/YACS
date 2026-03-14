@@ -9,7 +9,7 @@
   "installBoth": "Skillak eta agenteak",
   "selectLocation": "📍 INSTALAZIO KOKALEKUA HAUTATU",
   "selectLocationMessage": "Non instalatu nahi duzu:",
-  "homeDirectory": "Home direktorioa (~/.claude)",
+  "homeDirectory": "Home direktorioa",
   "customRepository": "Proiektuko/repositorioaren bidea",
   "selectSkills": "🎯 INSTALATU NAHI DITUZUN SKILLAK HAUTATU",
   "selectSkillsHint": "↑↓ erabili nabigatzeko, ESPACIOA hautatzeko/hautaketa kentzeko",
@@ -42,5 +42,11 @@
   "unattendedNoSkillsMatched": "--skills zehaztapenak ez du skillik bat egin",
   "unattendedMissingAgents": "--agents bandera nahitaezkoa da agenteak instalatzean",
   "unattendedUnknownAgent": "Agente ezezaguna",
-  "unattendedNoAgentsMatched": "--agents zehaztapenak ez du agenteik bat egin"
+  "unattendedNoAgentsMatched": "--agents zehaztapenak ez du agenteik bat egin",
+  "selectCli": "🖥️  HELBURUKO CLI HAUTATU",
+  "selectCliMessage": "Zein CLI-n instalatu nahi duzu:",
+  "selectedCli": "Helburuko CLI",
+  "targetCli": "Helburuko CLI",
+  "unknownCliTarget": "CLI helburu ezezaguna",
+  "validCliTargets": "CLI baliozko helburuak"
 }

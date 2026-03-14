@@ -9,7 +9,7 @@
   "installBoth": "Skills y agentes",
   "selectLocation": "📍 SELESIONA ÓNDE INSTALAR",
   "selectLocationMessage": "Ónde quié instalar:",
-  "homeDirectory": "Home directory (~/.claude)",
+  "homeDirectory": "Home directory",
   "customRepository": "Proyetu/repositorio personaliza'o",
   "selectSkills": "🎯 SELESIONA LOS SKILLS A INSTALAR",
   "selectSkillsHint": "Usa ↑↓ pa navegar, ESPACIO pa selesionar/deselesionar",
@@ -42,5 +42,11 @@
   "unattendedNoSkillsMatched": "La espesifikasión --skills no emparejó con ningún skill",
   "unattendedMissingAgents": "La bandera --agents es requerida al instalar agentes",
   "unattendedUnknownAgent": "Agente desconóci'o",
-  "unattendedNoAgentsMatched": "La espesifikasión --agents no emparejó con ningún agente"
+  "unattendedNoAgentsMatched": "La espesifikasión --agents no emparejó con ningún agente",
+  "selectCli": "🖥️  SELESIONA ER CLI DESTINO",
+  "selectCliMessage": "¿En qué CLI quié instalar:",
+  "selectedCli": "CLI destino",
+  "targetCli": "CLI destino",
+  "unknownCliTarget": "CLI destino desconóci'o",
+  "validCliTargets": "CLIs válidos"
 }

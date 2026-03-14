@@ -9,7 +9,7 @@
   "installBoth": "スキルとエージェント両方",
   "selectLocation": "📍 インストール場所を選択",
   "selectLocationMessage": "インストール先を選択:",
-  "homeDirectory": "ホームディレクトリ (~/.claude)",
+  "homeDirectory": "ホームディレクトリ",
   "customRepository": "プロジェクト/リポジトリ（カスタムパス）",
   "selectSkills": "🎯 インストールするスキルを選択",
   "selectSkillsHint": "↑↓ で移動、SPACE で選択/非選択",
@@ -42,5 +42,11 @@
   "unattendedNoSkillsMatched": "--skills の指定がスキルと一致しません",
   "unattendedMissingAgents": "--agents フラグはエージェントインストール時に必須です",
   "unattendedUnknownAgent": "不明なエージェント",
-  "unattendedNoAgentsMatched": "--agents の指定がエージェントと一致しません"
+  "unattendedNoAgentsMatched": "--agents の指定がエージェントと一致しません",
+  "selectCli": "🖥️  ターゲットCLIを選択",
+  "selectCliMessage": "どのCLIにインストールしますか:",
+  "selectedCli": "ターゲットCLI",
+  "targetCli": "ターゲットCLI",
+  "unknownCliTarget": "不明なCLIターゲット",
+  "validCliTargets": "有効なターゲット"
 }

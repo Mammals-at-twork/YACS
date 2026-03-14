@@ -9,7 +9,7 @@
   "installBoth": "Both skills and agents",
   "selectLocation": "📍 SELECT INSTALLATION LOCATION",
   "selectLocationMessage": "Where would you like to install:",
-  "homeDirectory": "Home directory (~/.claude)",
+  "homeDirectory": "Home directory",
   "customRepository": "Custom project/repository path",
   "selectSkills": "🎯 SELECT SKILLS TO INSTALL",
   "selectSkillsHint": "Use ↑↓ to navigate, SPACE to select/deselect",
@@ -42,5 +42,11 @@
   "unattendedNoSkillsMatched": "The --skills specification matched no skills",
   "unattendedMissingAgents": "The --agents flag is required when installing agents",
   "unattendedUnknownAgent": "Unknown agent",
-  "unattendedNoAgentsMatched": "The --agents specification matched no agents"
+  "unattendedNoAgentsMatched": "The --agents specification matched no agents",
+  "selectCli": "🖥️  SELECT TARGET CLI",
+  "selectCliMessage": "Which CLI do you want to install to:",
+  "selectedCli": "Target CLI",
+  "targetCli": "Target CLI",
+  "unknownCliTarget": "Unknown CLI target",
+  "validCliTargets": "Valid targets"
 }

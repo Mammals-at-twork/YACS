@@ -9,7 +9,7 @@
   "installBoth": "Skills i agents",
   "selectLocation": "📍 SELECCIONA ON INSTAL·LAR",
   "selectLocationMessage": "On vols instal·lar:",
-  "homeDirectory": "Directori home (~/.claude)",
+  "homeDirectory": "Directori home",
   "customRepository": "Projecte/repositori personalitzat",
   "selectSkills": "🎯 SELECCIONA ELS SKILLS A INSTAL·LAR",
   "selectSkillsHint": "Usa ↑↓ per navegar, ESPAI per seleccionar/deseleccionar",
@@ -42,5 +42,11 @@
   "unattendedNoSkillsMatched": "L'especificació --skills no va coincidir amb cap skill",
   "unattendedMissingAgents": "El flag --agents és necessari en instal·lar agents",
   "unattendedUnknownAgent": "Agent desconegut",
-  "unattendedNoAgentsMatched": "L'especificació --agents no va coincidir amb cap agent"
+  "unattendedNoAgentsMatched": "L'especificació --agents no va coincidir amb cap agent",
+  "selectCli": "🖥️  SELECCIONA EL CLI DESTÍ",
+  "selectCliMessage": "A quin CLI vols instal·lar:",
+  "selectedCli": "CLI destí",
+  "targetCli": "CLI destí",
+  "unknownCliTarget": "CLI destí desconegut",
+  "validCliTargets": "CLIs vàlids"
 }
