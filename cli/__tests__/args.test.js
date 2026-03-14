@@ -6,9 +6,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILLS_ROOT = path.join(__dirname, '../../skills');
 const AGENTS_ROOT = path.join(__dirname, '../../agents');
 
+// CLI targets configuration (mirrors install.js)
+const CLI_TARGETS = {
+  claude: { name: 'Claude Code', homeDir: '.claude' },
+  gemini: { name: 'Gemini CLI', homeDir: '.gemini' },
+  codex: { name: 'Codex CLI', homeDir: '.codex' },
+  copilot: { name: 'GitHub Copilot', homeDir: '.copilot' },
+};
+
 // Mock implementations for testing
 function parseArgs(argv = []) {
   let language = null;
+  let cli = null;
   let path_arg = null;
   let skills = null;
   let agents = null;
@@ -19,6 +28,9 @@ function parseArgs(argv = []) {
     const arg = argv[i];
     if (arg === '-l' || arg === '--language') {
       language = argv[i + 1];
+      i++;
+    } else if (arg === '-c' || arg === '--cli') {
+      cli = argv[i + 1];
       i++;
     } else if (arg === '-p' || arg === '--path') {
       path_arg = argv[i + 1];
@@ -36,17 +48,30 @@ function parseArgs(argv = []) {
     }
   }
 
-  const unattended = !!(language || path_arg || skills || agents || list);
+  const unattended = !!(language || cli || path_arg || skills || agents || list);
 
   return {
     unattended,
     help,
     list,
     language,
+    cli,
     path: path_arg,
     skills,
     agents,
   };
+}
+
+function resolveCli(rawCli) {
+  if (!rawCli) {
+    return CLI_TARGETS.claude;
+  }
+  const key = rawCli.toLowerCase();
+  if (!CLI_TARGETS[key]) {
+    const validTargets = Object.keys(CLI_TARGETS).join(', ');
+    throw new Error(`Unknown CLI target: '${rawCli}'. Valid targets: ${validTargets}`);
+  }
+  return CLI_TARGETS[key];
 }
 
 function getAgents() {
@@ -246,6 +271,31 @@ describe('Argument Parser', () => {
     expect(result.language).toBe('es');
     expect(result.unattended).toBe(true);
   });
+
+  it('should parse --cli flag', () => {
+    const result = parseArgs(['--cli', 'gemini']);
+    expect(result.cli).toBe('gemini');
+    expect(result.unattended).toBe(true);
+  });
+
+  it('should parse -c short form', () => {
+    const result = parseArgs(['-c', 'codex']);
+    expect(result.cli).toBe('codex');
+    expect(result.unattended).toBe(true);
+  });
+
+  it('should return cli: null when not provided', () => {
+    const result = parseArgs([]);
+    expect(result.cli).toBeNull();
+  });
+
+  it('should parse --cli alongside other flags', () => {
+    const result = parseArgs(['--cli', 'copilot', '--path', 'home', '--skills', 'all']);
+    expect(result.cli).toBe('copilot');
+    expect(result.path).toBe('home');
+    expect(result.skills).toBe('all');
+    expect(result.unattended).toBe(true);
+  });
 });
 
 describe('Skill Resolution', () => {
@@ -356,6 +406,47 @@ describe('Agent Parser', () => {
     expect(result.skills).toBe('all');
     expect(result.agents).toBe('all');
     expect(result.unattended).toBe(true);
+  });
+});
+
+describe('CLI Resolution', () => {
+  it('should default to claude when no CLI specified', () => {
+    const result = resolveCli(null);
+    expect(result.name).toBe('Claude Code');
+    expect(result.homeDir).toBe('.claude');
+  });
+
+  it('should resolve claude target', () => {
+    const result = resolveCli('claude');
+    expect(result.name).toBe('Claude Code');
+    expect(result.homeDir).toBe('.claude');
+  });
+
+  it('should resolve gemini target', () => {
+    const result = resolveCli('gemini');
+    expect(result.name).toBe('Gemini CLI');
+    expect(result.homeDir).toBe('.gemini');
+  });
+
+  it('should resolve codex target', () => {
+    const result = resolveCli('codex');
+    expect(result.name).toBe('Codex CLI');
+    expect(result.homeDir).toBe('.codex');
+  });
+
+  it('should resolve copilot target', () => {
+    const result = resolveCli('copilot');
+    expect(result.name).toBe('GitHub Copilot');
+    expect(result.homeDir).toBe('.copilot');
+  });
+
+  it('should be case-insensitive', () => {
+    const result = resolveCli('GEMINI');
+    expect(result.name).toBe('Gemini CLI');
+  });
+
+  it('should throw for unknown CLI target', () => {
+    expect(() => resolveCli('unknown')).toThrow('Unknown CLI target');
   });
 });
 
