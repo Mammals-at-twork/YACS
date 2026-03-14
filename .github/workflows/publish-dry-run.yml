@@ -1,0 +1,47 @@
+name: Publish Dry Run
+
+on:
+  workflow_dispatch:  # Manual trigger desde GitHub UI
+
+jobs:
+  dry-run:
+    name: Test Publish & Authentication
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    defaults:
+      run:
+        working-directory: cli
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm to latest version
+        run: npm install -g npm@latest
+
+      - name: Verify npm version
+        run: npm --version
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Check authentication
+        run: npm whoami
+
+      - name: Show npm config
+        run: npm config list
+
+      - name: Dry run publish
+        run: npm publish --dry-run
+        env:
+          NPM_CONFIG_PROVENANCE: true
+
+      - name: Success
+        run: echo "✅ Dry run completed successfully. OIDC authentication works!"

@@ -1,0 +1,51 @@
+{
+  "name": "@mammals-at-work/yacs",
+  "version": "0.8.9",
+  "description": "Interactive CLI installer for Y.A.C.S. (Yet Another Claude Skills)",
+  "type": "module",
+  "bin": {
+    "yacs": "src/install.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mammals-at-work/YACS.git",
+    "directory": "cli"
+  },
+  "files": [
+    "src/install.js",
+    "src/i18n.js",
+    "i18n/",
+    "skills/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "start": "node src/install.js",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "prepublishOnly": "node prepublish.js"
+  },
+  "keywords": [
+    "yacs",
+    "skills",
+    "installer",
+    "cli",
+    "claude",
+    "codex"
+  ],
+  "author": "Carlos L x Mammals at Work",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "inquirer": "13.3.0"
+  },
+  "devDependencies": {
+    "jest": "29.5.0"
+  },
+  "overrides": {
+    "glob": "13.0.6"
+  }
+}
