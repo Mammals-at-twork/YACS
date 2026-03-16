@@ -32,6 +32,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+      
       - name: Do copy
         run: |
           cp -r ../skills ./skills

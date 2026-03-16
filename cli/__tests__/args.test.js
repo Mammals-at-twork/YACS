@@ -242,7 +242,7 @@ describe('CLI Resolution', () => {
   });
 
   it('should throw for unknown CLI target', () => {
-    expect(() => resolveCli('unknown')).toThrow('CLI destino desconocido');
+    expect(() => resolveCli('unknown')).toThrow('Unknown CLI target');
   });
 });
 
